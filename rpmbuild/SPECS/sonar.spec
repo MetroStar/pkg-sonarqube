@@ -1,0 +1,136 @@
+# Don't try fancy stuff like debuginfo, which is useless on binary-only
+# packages. Don't strip binary too
+# Be sure buildpolicy set to do nothing
+%define		__spec_install_post %{nil}
+%define		debug_package %{nil}
+%define		__os_install_post %{_dbpath}/brp-compress
+%define		_build_name_fmt %{ARCH}/%{NAME}-%{VERSION}-%{RELEASE}%{dist}.%{ARCH}.rpm
+
+
+Name:		sonar
+Version:	%{major}
+Release:	%{minor}
+Summary:	Open platform to manage code quality
+Vendor:		SonarSource
+Packager:	Plus3 Cloud Broker Team <acb@plus3it.com>
+Group:		Development/Tools
+License:	LGPLv3
+URL:		https://binaries.sonarsource.com/Distribution/sonarqube/
+Source:		sonarqube-%{version}.%{minor}.zip
+Source1:	sonar.chkconfig
+Source2:	sonar.systemd
+BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+#BuildRequires:	
+#Requires:	
+#BuildArch:	noarch
+Autoreq:	0
+Autoprov:	0
+
+%description
+Sonar is an open source software quality management tool, dedicated
+to continuously analyze and measure source code quality.
+
+%prep
+%setup -q -n sonarqube-%{version}.%{minor}
+
+%build
+
+%install
+rm -rf %{buildroot}
+
+# Remove wholly unnecessary files
+printf "Removing extraneous OSX binaries... "
+rm -rv bin/macosx-universal-64 && echo "Success"
+printf "Removing extraneous Win32 binaries... "
+rm -rv bin/windows-x86-32 && echo "Success"
+printf "Removing extraneous Win64 binaries... "
+rm -rv bin/windows-x86-64 && echo "Success"
+
+# Remove specifically unnecessary files
+%ifarch x86_64
+   printf "Removing 32bit Linux binaries... "
+   rm -rv bin/linux-x86-32 && echo "Success"
+%endif
+
+%ifarch i386
+   printf "Removing 64bit Linux binaries... "
+   rm -rv bin/linux-x86-64 && echo "Success"
+%endif
+
+
+# Fix EOL in configuration files
+for i in conf/* ; do
+  echo "dos2unix $i"
+  awk '{ sub("\r$", ""); print }' $i > $i.new
+  mv $i.new $i
+done
+
+mkdir -p %{buildroot}/opt/sonar/
+cp -R %{_builddir}/sonarqube-%{version}.%{minor}/* %{buildroot}/opt/sonar/
+
+%if "%{dist}" == ".el6"
+%__install -D -m0755 "%{SOURCE1}" "%{buildroot}/etc/init.d/%{name}"
+%endif
+
+%if "%{dist}" == ".el7"
+%__install -D -m0600 "%{SOURCE2}" "%{buildroot}/usr/lib/systemd/system/%{name}.service"
+%ifarch x86_64
+sed -i 's/__BITS__/64/' "%{buildroot}/usr/lib/systemd/system/%{name}.service"
+%endif
+%ifarch i386
+sed -i 's/__BITS__/32/' "%{buildroot}/usr/lib/systemd/system/%{name}.service"
+%endif
+%endif
+
+%pre
+/usr/sbin/groupadd -r sonar &>/dev/null || :
+/usr/sbin/useradd -g sonar -s /bin/sh -r -d "/opt/sonar" sonar &>/dev/null || :
+
+%post
+%if "%{dist}" == ".el6"
+/sbin/chkconfig --add sonar
+%endif
+
+%if "%{dist}" == ".el7"
+/usr/bin/systemctl daemon-reload
+/usr/bin/systemctl enable sonar
+%endif
+
+%preun
+if [ "$1" = 0 ] ; then
+  # if this is uninstallation as opposed to upgrade, delete the service
+  /sbin/service sonar stop > /dev/null 2>&1
+  /sbin/chkconfig --del sonar
+fi
+exit 0
+
+%clean
+rm -rf %{buildroot}
+
+%files
+%defattr(0644,sonar,sonar,0755)
+/opt/sonar
+%config(noreplace) /opt/sonar/conf/sonar.properties
+
+%ifarch i386
+%attr(0755,sonar,sonar) /opt/sonar/bin/linux-x86-32/sonar.sh
+%attr(0755,sonar,sonar) /opt/sonar/bin/linux-x86-32/wrapper
+%attr(0755,sonar,sonar) /opt/sonar/bin/linux-x86-32/lib/libwrapper.so
+%endif
+
+%ifarch x86_64
+%attr(0755,sonar,sonar) /opt/sonar/bin/linux-x86-64/sonar.sh
+%attr(0755,sonar,sonar) /opt/sonar/bin/linux-x86-64/wrapper
+%attr(0755,sonar,sonar) /opt/sonar/bin/linux-x86-64/lib/libwrapper.so
+%endif
+
+%attr(0755,sonar,sonar) /opt/sonar/elasticsearch/bin/elasticsearch
+
+%if "%{dist}" == ".el6"
+%attr(0755,root,root) %config /etc/init.d/%{name}
+%endif
+
+%if "%{dist}" == ".el7"
+%attr(0600,root,root) %config /usr/lib/systemd/system/sonar.service
+%endif
