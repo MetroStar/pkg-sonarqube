@@ -1,0 +1,5 @@
+# Ignore binary-archive files
+*.zip
+*.[t]gz
+*.bz2
+*.tar
