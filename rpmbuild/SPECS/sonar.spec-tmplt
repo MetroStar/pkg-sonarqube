@@ -108,6 +108,7 @@ exit 0
 
 %clean
 rm -rf %{buildroot}
+rm -rf %{_builddir}/%{_sqbuilddir}
 
 %files
 %defattr(0644,sonar,sonar,0755)
