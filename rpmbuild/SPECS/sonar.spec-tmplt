@@ -5,7 +5,7 @@
 %define		debug_package %{nil}
 %define		__os_install_post %{_dbpath}/brp-compress
 %define		_build_name_fmt %{ARCH}/%{NAME}-%{VERSION}-%{RELEASE}%{dist}.%{ARCH}.rpm
-
+%define         _sqbuilddir __SRCROOTDIR__
 
 Name:		sonar
 Version:	%{major}
@@ -16,7 +16,7 @@ Packager:	Plus3 Cloud Broker Team <acb@plus3it.com>
 Group:		Development/Tools
 License:	LGPLv3
 URL:		https://binaries.sonarsource.com/Distribution/sonarqube/
-Source:		sonarqube-%{version}.%{minor}.zip
+Source:         __SRCARCHIVE__
 Source1:	sonar.chkconfig
 Source2:	sonar.systemd
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -32,7 +32,8 @@ Sonar is an open source software quality management tool, dedicated
 to continuously analyze and measure source code quality.
 
 %prep
-%setup -q -n sonarqube-%{version}.%{minor}
+%setup -q -n %{_sqbuilddir}
+
 
 %build
 
@@ -67,7 +68,7 @@ for i in conf/* ; do
 done
 
 mkdir -p %{buildroot}/opt/sonar/
-cp -R %{_builddir}/sonarqube-%{version}.%{minor}/* %{buildroot}/opt/sonar/
+cp -R %{_builddir}/%{_sqbuilddir}/* %{buildroot}/opt/sonar/
 
 %if "%{dist}" == ".el6"
 %__install -D -m0755 "%{SOURCE1}" "%{buildroot}/etc/init.d/%{name}"
