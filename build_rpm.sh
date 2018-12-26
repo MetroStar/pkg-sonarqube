@@ -7,6 +7,9 @@ PROGNAME="$(basename ${0})"
 PROGDIR="$( readlink -f $( dirname ${0} ) )"
 SOURCEPKG="${1:-UNDEF}"
 SOURCEFIL=${SOURCEPKG##*/}
+CHANGELOGDATE=$( date '+%a %b %e %Y' )
+CHANGELOGNAME=$( git config --get user.name 2> /dev/null || true )
+CHANGELOGMAIL=$( git config --get user.email 2> /dev/null || true )
 VERSTRING=$( echo ${SOURCEFIL} | sed -e 's/\.zip//' -e 's/^sonarqube-//' )
 VERFIELDS=$( echo ${VERSTRING} | awk -F'.' '{ print NF }' )
 
