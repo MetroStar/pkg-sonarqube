@@ -7,10 +7,24 @@ PROGNAME="$(basename ${0})"
 PROGDIR="$( readlink -f $( dirname ${0} ) )"
 SOURCEPKG="${1:-UNDEF}"
 SOURCEFIL=${SOURCEPKG##*/}
-SONARMAJ="$( echo ${SOURCEFIL} | sed -e 's/.zip//' -e 's/^.*-//' | \
-             cut -d . -f 1)"
-SONARMIN="$( echo ${SOURCEFIL} | sed -e 's/.zip//' -e 's/^.*-//' | \
-             cut -d . -f 2)"
+CHANGELOGDATE=$( date '+%a %b %e %Y' )
+CHANGELOGNAME=$( git config --get user.name 2> /dev/null || true )
+CHANGELOGMAIL=$( git config --get user.email 2> /dev/null || true )
+VERSTRING=$( echo ${SOURCEFIL} | sed -e 's/\.zip//' -e 's/^sonarqube-//' )
+VERFIELDS=$( echo ${VERSTRING} | awk -F'.' '{ print NF }' )
+
+if [[ ${VERFIELDS} -gt 2 ]]
+then
+   SONARMAJ=$( echo ${VERSTRING} | awk -F '.' '{printf("%s.%s",$1,$2)}')
+   SONARMIN=$( echo ${VERSTRING} | awk -F '.' '{printf("%s",$3)}')
+elif [[ ${VERFIELDS} -eq 2 ]]
+then
+   SONARMAJ=$( echo ${VERSTRING} | awk -F '.' '{printf("%s.%s",$1,$2)}')
+   SONARMIN=0
+else
+   SONARMAJ=$( echo ${VERSTRING} | awk -F '.' '{printf("%s",$1)}')
+   SONARMIN=0
+fi
 
 # Define our error-handler\n",
 function err_exit {
@@ -38,6 +52,12 @@ then
    mv "${SOURCEPKG}" "$( dirname ${PROGNAME} )/rpmbuild/SOURCES/${SOURCEFIL}" \
      && echo "Success" || err_exit "Failed moving ${SOURCEFIL}"
 fi
+
+# Create suitable spec file from template
+sed -e "s/__SRCARCHIVE__/${SOURCEFIL}/" \
+    -e "s/__SRCROOTDIR__/${SOURCEFIL%%.zip}/" \
+  rpmbuild/SPECS/sonar.spec-tmplt > rpmbuild/SPECS/sonar.spec
+
 
 # Build the RPM
 cd "${PROGDIR}/rpmbuild" &&
