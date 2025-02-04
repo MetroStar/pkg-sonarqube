@@ -12,7 +12,7 @@ Version:	%{major}
 Release:	%{minor}
 Summary:	Open platform to manage code quality
 Vendor:		SonarSource
-Packager:	Plus3 Cloud Broker Team <acb@plus3it.com>
+Packager:	Plus3 Cloud Broker Team <acb@MetroStar.com>
 Group:		Development/Tools
 License:	LGPLv3
 URL:		https://binaries.sonarsource.com/Distribution/sonarqube/
